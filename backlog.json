@@ -1,0 +1,290 @@
+[
+  {
+    "title": "Epic: User Authentication & Account Management",
+    "body": "Parent epic for all authentication-related user flows including registration, login, wallet linking, and password recovery.",
+    "labels": [
+      "epic",
+      "auth"
+    ]
+  },
+  {
+    "title": "Epic: Role-Based Access Control (RBAC)",
+    "body": "Parent epic for all role-based access permission and enforcement across the API.",
+    "labels": [
+      "epic",
+      "rbac"
+    ]
+  },
+  {
+    "title": "Epic: Crypto Payments (Lightning & Ethereum)",
+    "body": "Enable crypto-native payments via the Bitcoin Lightning Network and Ethereum (ETH, USDC).",
+    "labels": [
+      "epic",
+      "payments"
+    ]
+  },
+  {
+    "title": "Epic: NFT Membership System",
+    "body": "Use ERC-721 NFTs to represent tiered memberships with perks, expiration, and access rights.",
+    "labels": [
+      "epic",
+      "nft"
+    ]
+  },
+  {
+    "title": "Epic: Subscription & Streaming Payments",
+    "body": "Add support for recurring billing via smart contracts or off-chain systems.",
+    "labels": [
+      "epic",
+      "subscriptions"
+    ]
+  },
+  {
+    "title": "Epic: POS Interface & Checkouts",
+    "body": "POS system to allow operators to take crypto payments in physical venues.",
+    "labels": [
+      "epic",
+      "pos"
+    ]
+  },
+  {
+    "title": "Epic: Loyalty & Rewards",
+    "body": "System to reward users with NFTs and perks for engagement and spending.",
+    "labels": [
+      "epic",
+      "loyalty"
+    ]
+  },
+  {
+    "title": "Epic: Event Check-in System",
+    "body": "Track physical presence and participation using wallet or NFT credentials.",
+    "labels": [
+      "epic",
+      "checkin"
+    ]
+  },
+  {
+    "title": "Epic: DevOps & Infrastructure",
+    "body": "Ensure platform services are deployable and maintainable using Docker and CI/CD.",
+    "labels": [
+      "epic",
+      "infra"
+    ]
+  },
+  {
+    "title": "Epic: Testing & QA",
+    "body": "Develop automated tests and ensure quality with test coverage.",
+    "labels": [
+      "epic",
+      "testing"
+    ]
+  },
+  {
+    "title": "Epic: MVP Launch & Pilot",
+    "body": "Run pilot deployments at real venues and monitor system usage.",
+    "labels": [
+      "epic",
+      "launch"
+    ]
+  },
+  {
+    "title": "User Registration",
+    "body": "**As a** new user\n**I want to** register with my email and password\n**So that** I can create an account on ZephyrPay",
+    "labels": [
+      "story",
+      "auth"
+    ]
+  },
+  {
+    "title": "User Login",
+    "body": "**As a** registered user\n**I want to** log in with my credentials\n**So that** I can access the platform",
+    "labels": [
+      "story",
+      "auth"
+    ]
+  },
+  {
+    "title": "Password Recovery",
+    "body": "**As a** user\n**I want to** recover my account if I forget my password\n**So that** I can regain access securely",
+    "labels": [
+      "story",
+      "auth"
+    ]
+  },
+  {
+    "title": "Link ETH & LN Wallets",
+    "body": "**As a** user\n**I want to** link my Ethereum and Lightning wallets\n**So that** I can use crypto features",
+    "labels": [
+      "story",
+      "wallet"
+    ]
+  },
+  {
+    "title": "Assign Roles to Users",
+    "body": "**As an** admin\n**I want to** assign roles to users (Admin, Operator, Member)\n**So that** they have the correct access",
+    "labels": [
+      "story",
+      "rbac"
+    ]
+  },
+  {
+    "title": "RBAC Middleware Enforcement",
+    "body": "**As a** system\n**I want to** block unauthorized access\n**So that** users only access permitted endpoints",
+    "labels": [
+      "story",
+      "rbac"
+    ]
+  },
+  {
+    "title": "Generate Lightning Invoice",
+    "body": "**As a** member\n**I want to** generate a Lightning invoice\n**So that** I can pay for access or services",
+    "labels": [
+      "story",
+      "payments"
+    ]
+  },
+  {
+    "title": "Confirm Lightning Payment",
+    "body": "**As a** system\n**I want to** check payment status\n**So that** I can unlock services",
+    "labels": [
+      "story",
+      "payments"
+    ]
+  },
+  {
+    "title": "Verify Ethereum Payment",
+    "body": "**As a** member\n**I want to** send ETH or USDC\n**So that** I can unlock access",
+    "labels": [
+      "story",
+      "payments"
+    ]
+  },
+  {
+    "title": "Mint NFT Membership",
+    "body": "**As a** user\n**I want to** mint a membership NFT\n**So that** I can access Zo Houses",
+    "labels": [
+      "story",
+      "nft"
+    ]
+  },
+  {
+    "title": "Verify NFT Ownership",
+    "body": "**As a** system\n**I want to** verify NFT ownership\n**So that** I can grant or deny access",
+    "labels": [
+      "story",
+      "nft"
+    ]
+  },
+  {
+    "title": "Create Subscription",
+    "body": "**As a** user\n**I want to** subscribe monthly or annually\n**So that** I don\u2019t have to pay each time",
+    "labels": [
+      "story",
+      "subscriptions"
+    ]
+  },
+  {
+    "title": "Cancel or Pause Subscription",
+    "body": "**As a** user\n**I want to** cancel or pause my subscription\n**So that** I can stop charges",
+    "labels": [
+      "story",
+      "subscriptions"
+    ]
+  },
+  {
+    "title": "Checkout With Lightning",
+    "body": "**As a** space operator\n**I want to** generate a Lightning invoice\n**So that** I can receive IRL payment",
+    "labels": [
+      "story",
+      "pos"
+    ]
+  },
+  {
+    "title": "Checkout With Ethereum",
+    "body": "**As a** space operator\n**I want to** collect ETH/USDC via QR\n**So that** I can accept crypto at the register",
+    "labels": [
+      "story",
+      "pos"
+    ]
+  },
+  {
+    "title": "View Checkout History",
+    "body": "**As a** merchant\n**I want to** see a list of past payments\n**So that** I can track performance",
+    "labels": [
+      "story",
+      "pos"
+    ]
+  },
+  {
+    "title": "Issue Loyalty NFTs",
+    "body": "**As a** system\n**I want to** mint NFTs for event attendance\n**So that** users feel rewarded",
+    "labels": [
+      "story",
+      "loyalty"
+    ]
+  },
+  {
+    "title": "Redeem Perks",
+    "body": "**As a** member\n**I want to** trade loyalty points for rewards\n**So that** I benefit from consistent usage",
+    "labels": [
+      "story",
+      "loyalty"
+    ]
+  },
+  {
+    "title": "Check In With NFT or Payment",
+    "body": "**As a** user\n**I want to** check in via QR or NFT scan\n**So that** my attendance is logged",
+    "labels": [
+      "story",
+      "checkin"
+    ]
+  },
+  {
+    "title": "CI/CD Pipeline",
+    "body": "**As a** developer\n**I want to** auto-deploy code from GitHub\n**So that** we streamline testing",
+    "labels": [
+      "story",
+      "infra"
+    ]
+  },
+  {
+    "title": "Supabase + LNBits + IPFS Setup",
+    "body": "**As a** team\n**We need to** configure backend services\n**So that** app works across all layers",
+    "labels": [
+      "story",
+      "infra"
+    ]
+  },
+  {
+    "title": "Unit Tests",
+    "body": "**As a** developer\n**I want to** ensure all modules are tested\n**So that** the code is reliable",
+    "labels": [
+      "story",
+      "testing"
+    ]
+  },
+  {
+    "title": "E2E Tests",
+    "body": "**As a** QA tester\n**I want to** simulate real user flows\n**So that** we can catch bugs before launch",
+    "labels": [
+      "story",
+      "testing"
+    ]
+  },
+  {
+    "title": "Admin Dashboard",
+    "body": "**As an** admin\n**I want to** monitor user activity and payments\n**So that** I can manage operations",
+    "labels": [
+      "story",
+      "launch"
+    ]
+  },
+  {
+    "title": "Deploy to Partner Venue",
+    "body": "**As a** pilot team\n**We want to** test the platform in a real venue\n**So that** we validate UX and performance",
+    "labels": [
+      "story",
+      "launch"
+    ]
+  }
+]
