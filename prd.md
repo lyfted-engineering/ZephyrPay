@@ -7,18 +7,19 @@ ZephyrPay is a crypto-native payment and access management platform for member-o
 
 ---
 
-### 1. **Goals & Objectives**
+## 1. 🎯 Goals & Objectives
 
-- Support **fast, low-fee payments** via Bitcoin Lightning Network.
-- Enable **Ethereum-based memberships** and **NFT loyalty systems**.
-- Facilitate **one-time and recurring payments** in crypto.
-- Provide an **API-first** platform for third-party integration.
-- Support **IRL POS systems** that accept crypto (Lightning, ETH, Stablecoins).
-- Deliver a secure, composable, and scalable MVP for pilot use in real spaces.
+- Support fast, low-fee payments via Bitcoin Lightning Network
+- Enable Ethereum-based memberships and NFT loyalty systems
+- Facilitate one-time and recurring payments in crypto
+- Provide an API-first platform for third-party integration
+- Support IRL POS systems that accept crypto (Lightning, ETH, Stablecoins)
+- Deliver a secure, composable, and scalable MVP for pilot use in real spaces
+- Build a performant, responsive, and accessible frontend using Next.js
 
 ---
 
-### 2. **Target Users**
+## 2. 👥 Target Users
 
 - Space Operators (Coworking spaces, Clubs, Event venues)
 - Community Members (freelancers, artists, founders, hackers)
@@ -26,164 +27,140 @@ ZephyrPay is a crypto-native payment and access management platform for member-o
 
 ---
 
-### 3. **Key Features (MVP Locked)**
+## 3. 🧩 Key Features (MVP Locked)
 
-#### 3.1 **Payment System**
-- Accept payments in:
-  - Bitcoin (via Lightning Network)
-  - Ethereum (ETH)
-  - ERC-20 tokens (USDC)
-- Support payment via:
-  - QR codes
-  - WalletConnect (ETH)
-  - LNURL (Lightning)
-- Invoice creation, expiration, and status tracking
-- Payment history per user and merchant
+### Backend Features:
+- Crypto Payments (Lightning, Ethereum, USDC)
+- NFT Memberships (ERC-721)
+- Subscriptions (Smart contract + off-chain)
+- Loyalty Rewards (NFT-based)
+- POS System for IRL checkout
+- Role-based Access Control (RBAC)
+- Full REST API with secure endpoints
+- Wallet Linking (ETH, Lightning)
 
-#### 3.2 **NFT-Gated Memberships**
-- Mint ERC-721/1155 NFTs to represent:
-  - Membership Tier (e.g. Basic, Premium)
-  - Expiration Date
-  - Perks / Metadata (IRL perks, guest passes)
-- NFT Verification Endpoint
-- On-chain + off-chain user linking (ETH wallet + LN pubkey)
-
-#### 3.3 **Subscriptions**
-- Monthly, Quarterly, and Annual recurring billing options
-- Implementation Types:
-  - ETH Smart Contract (Superfluid or ERC-4337 AA for automation)
-  - Lightning recurring reminders + webhook logic
-- Admin control to pause, cancel, or edit subscriptions
-
-#### 3.4 **POS for IRL Spaces**
-- Simple mobile-first cashier interface
-- Add line-items, select payment method
-- Generate Lightning invoices or ETH QR codes
-- Confirm payment via WebSocket / Webhook
-- Loyalty point tracking / NFT drop post-payment
-
-#### 3.5 **Loyalty & Rewards Engine**
-- Issue NFT badges for:
-  - Attendance
-  - Spending milestones
-  - Event participation
-- Webhook-triggered minting
-- Points-to-NFT conversion (off-chain loyalty → on-chain reward)
-
-#### 3.6 **API Platform**
-- OpenAPI-compliant REST API
-- Key Endpoints:
-  - `POST /auth/register`
-  - `POST /auth/login`
-  - `POST /auth/recover`
-  - `POST /auth/reset`
-  - `GET /user/profile`
-  - `PUT /user/profile`
-  - `POST /user/link-wallet`
-  - `GET /user/transactions`
-  - `POST /lightning/invoice`
-  - `GET /lightning/invoice/:id`
-  - `POST /eth/payment/verify`
-  - `POST /nft/verify`
-  - `POST /subscriptions/create`
-  - `POST /subscriptions/cancel`
-  - `GET /subscriptions/status`
-  - `POST /access/unlock`
-  - `POST /events/checkin`
-  - `POST /rewards/redeem`
-  - `GET /rewards`
-  - `GET /perks`
-  - `POST /pos/checkout`
-  - `GET /pos/history`
-- API Key + OAuth 2.0 based Auth
-- Role-Based Access Control (RBAC):
-  - Roles: Admin, Operator, Member
-  - Middleware for role-specific endpoint access
+### Frontend Features:
+- Role-based user dashboards (Admin, Operator, Member)
+- POS checkout interface
+- NFT and Subscription status displays
+- Lightning + Ethereum QR payment flows
+- Check-in and loyalty redemption UI
+- Admin dashboard for managing platform operations
 
 ---
 
-### 4. **System Architecture**
+## 4. 🧰 Technology Stack
 
-#### Backend Stack
-- **FastAPI** (Python)
-- **PostgreSQL** (via Supabase)
-- **Redis** (for session/state cache)
-- **LNBits** (for Bitcoin Lightning integration)
-- **Ethers.js/Web3.py** (for Ethereum on-chain interactions)
+### Backend:
+- **FastAPI (Python)**
+- **PostgreSQL (Supabase)**
+- **Redis** (sessions/cache)
+- **LNBits** (Lightning integration)
+- **Ethers.js / Web3.py** (Ethereum interaction)
 
-#### Infrastructure
-- **Dockerized Microservices**
-- Hosted on **DigitalOcean** / **Railway** for MVP
-- Option to run on **Umbrel** or local nodes for Lightning
-- IPFS optional for NFT metadata
+### Frontend:
+- **Next.js (App Router, SSR)**
+- **Tailwind CSS + ShadCN/UI**
+- **wagmi + viem** (ETH wallet)
+- **lnurl-auth, Alby SDK** (Lightning wallet)
+- **qrcode.react** (QR generator)
+- **SWR/React Query + Context API**
 
-#### Webhooks
-- Event-driven actions for:
-  - Successful payment
-  - NFT minted
-  - Subscription renewal
-  - Loyalty milestone achieved
-
----
-
-### 5. **Smart Contracts**
-
-#### Membership NFT Contract (ERC-721)
-- Metadata:
-  - `tier`
-  - `expiration`
-  - `perks[]`
-  - `location`
-- Mintable via admin or payment trigger
-
-#### Subscription Contract
-- Supports streaming payments (via Superfluid)
-- Emits `SubscriptionActive` and `SubscriptionCancelled` events
-- Linked to NFT issuance for perks
-
-#### Loyalty NFT Contract
-- Batch minting support (ERC-1155)
-- Issued on webhook trigger
+### Starter Template:
+- **[Next.js SaaS Starter by Vercel](https://github.com/vercel/nextjs-saas-starter)**
+  - Includes RBAC, Auth, Dashboard, Tailwind, Subscription UX
+  - Replaces Stripe with custom LN/ETH integration
 
 ---
 
-### 6. **Security & Compliance**
-- Non-custodial wallet integrations preferred
-- Rate-limiting on API endpoints
-- SIWE (Sign-In with Ethereum) and lnurl-auth for login
-- Encrypted storage of wallet linkage
-- Role-Based Access Control (RBAC)
-- JWT-based authentication and refresh tokens
+## 5. 📲 Core UI Pages (Frontend)
+
+- `/` – Landing page
+- `/login`, `/register` – Auth flows
+- `/dashboard` – Role-based view
+- `/profile`, `/subscriptions`, `/membership`
+- `/pos`, `/checkin`, `/rewards`, `/admin`
 
 ---
 
-### 7. **MVP Development Timeline (8 Weeks)**
+## 6. 🔐 Authentication & RBAC
+
+- Email/password login with JWT
+- Wallet linking (Metamask, lnurl-auth)
+- Route guards for role-based UI
+- Admin, Operator, Member roles
+
+---
+
+## 7. 🔄 Backend API Endpoints
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/recover`
+- `POST /auth/reset`
+- `GET /user/profile`
+- `PUT /user/profile`
+- `POST /user/link-wallet`
+- `GET /user/transactions`
+- `POST /lightning/invoice`
+- `GET /lightning/invoice/:id`
+- `POST /eth/payment/verify`
+- `POST /nft/verify`
+- `POST /subscriptions/create`
+- `POST /subscriptions/cancel`
+- `GET /subscriptions/status`
+- `POST /access/unlock`
+- `POST /events/checkin`
+- `POST /rewards/redeem`
+- `GET /rewards`
+- `GET /perks`
+- `POST /pos/checkout`
+- `GET /pos/history`
+
+---
+
+## 8. 🧾 Smart Contracts
+
+- **Membership NFT (ERC-721)**
+  - Metadata: tier, expiration, perks, location
+- **Subscription Contract**
+  - Superfluid / ERC-4337
+- **Loyalty NFT (ERC-1155)**
+  - Auto-issued via webhook
+
+---
+
+## 9. 📈 Development Timeline (8 Weeks)
 
 | Week | Milestone |
 |------|-----------|
-| 1-2  | Auth system + RBAC + Lightning integration + invoice APIs |
-| 2-3  | NFT minting, verification API, user linking |
-| 3-4  | POS cashier UI + payment flow test + user profile APIs |
-| 4-5  | Subscriptions API + off-chain logic |
-| 5-6  | Smart contract deployments + Superfluid integration |
-| 6-7  | Webhook + loyalty NFT logic |
-| 8    | Final polish, admin dashboard, pilot testing |
+| 1    | Setup backend + frontend starter template |
+| 2    | Auth system, RBAC, Lightning invoice UI/API |
+| 3    | ETH wallet integration, QR UI, NFT minting/display |
+| 4    | POS dashboard, payment + check-in flows |
+| 5    | Subscription flows + Superfluid integration |
+| 6    | Loyalty + rewards interface, mint NFTs |
+| 7    | Admin dashboard + webhook testing |
+| 8    | QA + Pilot Deployment to partner venue |
 
 ---
 
-### 8. **KPIs for Success**
-- 100% uptime of payment flow
-- <5 sec average payment confirmation time
-- At least 2 successful Lightning + NFT IRL activations
-- Pilot run at 1–3 real-world partner venues
+## 10. ✅ Success Metrics
+
+- Payment confirmation in < 5 seconds
+- NFT validation in < 5 seconds
+- < 2s frontend page load
+- 95% Lighthouse Accessibility Score
+- Pilot tested in 1–3 IRL venues
 
 ---
 
-### 9. **Future Considerations**
-- Fiat off-ramps (e.g., Strike, MoonPay)
-- DAO tools for venue ownership
-- zkSync or L2 Ethereum support
-- Mobile app for check-ins and loyalty tracking
+## 11. 🚀 Future Considerations
+
+- Mobile App version
+- Fiat Off-Ramp (Strike, MoonPay)
+- zkSync / L2 rollup support
+- DAO ownership tools
 
 ---
 
