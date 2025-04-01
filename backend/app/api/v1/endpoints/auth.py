@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Form
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import get_db
-from backend.app.schemas.user import UserCreate, Token
+from backend.app.schemas.user import UserCreate, Token, LoginRequest
 from backend.app.services.auth import register_user, login_user
 from backend.app.core.errors import AuthError, DuplicateError
 
@@ -57,8 +58,7 @@ async def user_register(
     """
 )
 async def user_login(
-    email: str,
-    password: str,
+    login_data: LoginRequest,
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -66,5 +66,5 @@ async def user_login(
     
     Returns a JWT token for authentication.
     """
-    token = await login_user(db, email, password)
+    token = await login_user(db, login_data.email, login_data.password)
     return token

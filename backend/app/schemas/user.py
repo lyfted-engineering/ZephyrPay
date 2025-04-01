@@ -74,3 +74,9 @@ class TokenPayload(BaseModel):
     """Schema for token payload (JWT contents)"""
     user_id: int
     role: str
+
+
+class LoginRequest(BaseModel):
+    """Schema for login request"""
+    email: EmailStr
+    password: str

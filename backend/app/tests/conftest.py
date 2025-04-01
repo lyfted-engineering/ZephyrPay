@@ -7,11 +7,14 @@ from sqlalchemy import text
 from typing import Generator, AsyncGenerator
 import os
 
+# Override settings before importing app
+os.environ["TESTING"] = "True"
+os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "11520"
+
 from backend.app.db.base import Base
 from backend.app.core.config import settings
 
 # Override settings for testing
-os.environ["TESTING"] = "True"
 settings.SQLALCHEMY_DATABASE_URI = "sqlite+aiosqlite:///:memory:"
 settings.ASYNC_SQLALCHEMY_DATABASE_URI = "sqlite+aiosqlite:///:memory:"
 

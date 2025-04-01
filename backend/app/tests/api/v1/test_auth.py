@@ -102,3 +102,87 @@ class TestUserRegistration:
         
         # Assert
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+class TestUserLogin:
+    """
+    Feature: User Login
+    As a registered user
+    I want to log in with my credentials
+    So that I can access the platform
+    """
+
+    def test_login_success(self, client: TestClient):
+        """
+        Scenario: Successful login
+        Given I am a registered user
+        When I submit valid credentials
+        Then I should receive a JWT token
+        And the response status should be 200 OK
+        """
+        # Arrange - Create a test user
+        register_data = {
+            "email": "logintest@example.com",
+            "password": "StrongP@ssw0rd",
+            "username": "loginuser"
+        }
+        client.post("/api/v1/auth/register", json=register_data)
+        
+        # Act - Attempt to login
+        login_data = {
+            "email": "logintest@example.com",
+            "password": "StrongP@ssw0rd"
+        }
+        response = client.post("/api/v1/auth/login", json=login_data)
+        
+        # Assert
+        assert response.status_code == status.HTTP_200_OK
+        assert "access_token" in response.json()
+        assert "token_type" in response.json()
+        assert response.json()["token_type"] == "bearer"
+        
+    def test_login_invalid_credentials(self, client: TestClient):
+        """
+        Scenario: Login with invalid credentials
+        Given I am a registered user
+        When I submit invalid credentials
+        Then I should receive an error
+        And the response status should be 401 Unauthorized
+        """
+        # Arrange - Create a test user
+        register_data = {
+            "email": "badlogin@example.com",
+            "password": "StrongP@ssw0rd",
+            "username": "badloginuser"
+        }
+        client.post("/api/v1/auth/register", json=register_data)
+        
+        # Act - Attempt to login with wrong password
+        login_data = {
+            "email": "badlogin@example.com",
+            "password": "WrongP@ssw0rd"
+        }
+        response = client.post("/api/v1/auth/login", json=login_data)
+        
+        # Assert
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "detail" in response.json()
+        
+    def test_login_nonexistent_user(self, client: TestClient):
+        """
+        Scenario: Login with email that doesn't exist
+        Given I attempt to login
+        When I submit an email that doesn't exist
+        Then I should receive an error
+        And the response status should be 401 Unauthorized
+        """
+        # Act - Attempt to login with non-existent email
+        login_data = {
+            "email": "nonexistent@example.com",
+            "password": "AnyP@ssw0rd"
+        }
+        response = client.post("/api/v1/auth/login", json=login_data)
+        
+        # Assert
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "detail" in response.json()
