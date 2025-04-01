@@ -26,19 +26,27 @@
   - Created error handling for invalid credentials
   - Added BDD-style tests for successful login and error scenarios
 
+#### 📌 Issue #14: Password Recovery ✅
+- **Implemented on:** April 2025
+- **Branch:** feature/14
+- **Status:** Completed
+- **Test Coverage:** 84.26%
+- **Summary:**
+  - Added password reset request endpoint with token generation
+  - Implemented secure token-based password reset verification
+  - Added proper error handling for invalid/expired tokens
+  - Created BDD-style tests for all recovery scenarios
+
 ### In Progress
 
-#### 📌 Issue #14: Password Recovery 🔄
+#### 📌 Issue #15: Link ETH & LN Wallets 🔄
 - **Status:** In Progress
-- **Branch:** feature/14
+- **Branch:** feature/15
 - **Acceptance Criteria:**
-  - Send reset token via email
-  - Validate token and allow password reset
+  - Accept public ETH and LN keys
+  - Persist linkage in user profile
 
 ### Backlog
-
-#### 📌 Issue #15: Link ETH & LN Wallets
-- **Status:** Not Started
 
 ## Epic 2: Role-Based Access Control (RBAC)
 
@@ -50,6 +58,6 @@
 
 ## Development Metrics
 
-- Current Test Coverage: 84%
+- Current Test Coverage: 84.26%
 - Required Test Coverage: 80%
 - Test Status: ✅ Meeting requirements
