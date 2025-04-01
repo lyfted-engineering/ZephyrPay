@@ -1,77 +1,78 @@
 from datetime import datetime, timedelta
-from typing import Any, Union, Optional
+from typing import Any, Dict, Optional, Union
 
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from backend.app.core.config import settings
 
-# Password hashing context
+
+# Password hashing using bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# JWT token settings
-ALGORITHM = "HS256"
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against a hash"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    """Generate a password hash"""
+    return pwd_context.hash(password)
 
 
 def create_access_token(
     subject: Union[str, Any], role: str, expires_delta: Optional[timedelta] = None
 ) -> str:
-    """
-    Create a JWT access token
-    
-    Args:
-        subject: The subject of the token (typically user ID)
-        role: User role for RBAC
-        expires_delta: Optional custom expiration time
-        
-    Returns:
-        JWT token as string
-    """
+    """Create a JWT access token"""
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    
-    to_encode = {
-        "exp": expire, 
-        "sub": str(subject), 
-        "role": role,
-        "iat": datetime.utcnow()
-    }
-    
-    encoded_jwt = jwt.encode(
-        to_encode, 
-        settings.SECRET_KEY, 
-        algorithm=ALGORITHM
-    )
-    
+    to_encode = {"exp": expire, "sub": str(subject), "role": role}
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
     return encoded_jwt
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def create_password_reset_token(
+    email: str, expires_delta: Optional[timedelta] = None
+) -> str:
     """
-    Verify a password against a hash
+    Create a password reset token
     
     Args:
-        plain_password: Plain text password to verify
-        hashed_password: Hashed password from database
+        email: User email
+        expires_delta: Token expiration time
         
     Returns:
-        True if password matches, False otherwise
+        JWT token for password reset
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=30)  # 30 minutes expiration
+    
+    to_encode = {"exp": expire, "sub": email, "type": "password_reset"}
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
+    return encoded_jwt
 
 
-def get_password_hash(password: str) -> str:
+def verify_password_reset_token(token: str) -> Optional[str]:
     """
-    Hash a password using bcrypt
+    Verify password reset token
     
     Args:
-        password: Plain text password to hash
+        token: JWT token
         
     Returns:
-        Hashed password
+        Email from token if valid, None otherwise
     """
-    return pwd_context.hash(password)
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        if payload.get("type") != "password_reset":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
