@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from typing import Generator, AsyncGenerator
 import os
+import jwt
 
 # Override settings before importing app
 os.environ["TESTING"] = "True"
@@ -88,3 +89,63 @@ def client(db) -> Generator[TestClient, None, None]:
     """Get a synchronous test client for the FastAPI app with a clean database"""
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def authenticated_user(client: TestClient, db: AsyncSession):
+    """
+    Create a user and return the user_id and authentication token.
+    Used for tests that require an authenticated user.
+    """
+    # Register a test user
+    register_data = {
+        "email": "authuser@example.com",
+        "password": "StrongP@ssw0rd",
+        "username": "authuser"
+    }
+    
+    response = client.post("/api/v1/auth/register", json=register_data)
+    assert response.status_code == 201
+    
+    token = response.json()["access_token"]
+    
+    # Get user ID from token
+    payload = jwt.decode(
+        token, 
+        settings.SECRET_KEY, 
+        algorithms=["HS256"]
+    )
+    user_id = int(payload["sub"])
+    
+    return user_id, token
+
+
+@pytest.fixture
+def authenticated_user_with_wallets(client: TestClient, authenticated_user):
+    """
+    Create a user with linked wallets and return user_id, token, and wallet addresses.
+    Used for wallet update tests.
+    """
+    user_id, token = authenticated_user
+    
+    # Link ETH wallet
+    eth_data = {
+        "eth_address": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
+    }
+    client.post(
+        "/api/v1/wallets/eth",
+        json=eth_data,
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    
+    # Link LN wallet
+    ln_data = {
+        "ln_address": "lnurl1dp68gurn8ghj7um9wfmxjcm99e3k7mf0v9cxj0m385ekvcenxc6r2c35xvukxefcv5mkvv34x5ekzd3ev56nyd3hxqurzepexejxxepnxscrvwfnv9nz7umn9cejxt5j7jfvy7"
+    }
+    client.post(
+        "/api/v1/wallets/ln",
+        json=ln_data,
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    
+    return user_id, token, eth_data["eth_address"], ln_data["ln_address"]

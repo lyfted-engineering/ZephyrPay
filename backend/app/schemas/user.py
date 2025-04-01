@@ -1,6 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator, Field
 import re
+from datetime import datetime
 
 
 class UserBase(BaseModel):
@@ -65,15 +66,16 @@ class UserUpdate(BaseModel):
 
 
 class Token(BaseModel):
-    """Schema for authentication token response"""
+    """Schema for authentication token"""
     access_token: str
     token_type: str
 
 
 class TokenPayload(BaseModel):
     """Schema for token payload (JWT contents)"""
-    user_id: int
+    sub: str
     role: str
+    exp: int
 
 
 class LoginRequest(BaseModel):
@@ -110,3 +112,21 @@ class PasswordResetResponse(BaseModel):
     """Schema for password reset response"""
     message: str
     reset_token: Optional[str] = None
+
+
+class UserResponse(BaseModel):
+    """Schema for user response"""
+    id: int
+    email: str
+    username: str
+    eth_address: Optional[str] = None
+    ln_address: Optional[str] = None
+    role: str
+    is_active: bool
+    is_verified: bool
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    
+    model_config = {
+        "from_attributes": True
+    }
