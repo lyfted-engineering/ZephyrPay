@@ -37,27 +37,47 @@
   - Added proper error handling for invalid/expired tokens
   - Created BDD-style tests for all recovery scenarios
 
-### In Progress
-
-#### 📌 Issue #15: Link ETH & LN Wallets 🔄
-- **Status:** In Progress
+#### 📌 Issue #15: Link ETH & LN Wallets ✅
+- **Implemented on:** April 2025
 - **Branch:** feature/15
-- **Acceptance Criteria:**
-  - Accept public ETH and LN keys
-  - Persist linkage in user profile
+- **Status:** Completed
+- **Test Coverage:** 84.75%
+- **Summary:**
+  - Added ETH and LN wallet address validation and storage
+  - Implemented protected API endpoints for wallet operations
+  - Created user profile endpoint with wallet information
+  - Added comprehensive BDD tests for wallet linking
+  - Implemented secure authentication middleware
+
+### In Progress
 
 ### Backlog
 
 ## Epic 2: Role-Based Access Control (RBAC)
 
-#### 📌 Issue #16: Assign Roles
-- **Status:** Not Started
+#### 📌 Issue #16: Assign Roles 🔄
+- **Status:** Ready to start
+- **Branch:** To be created
+- **Acceptance Criteria:**
+  - Assignable on registration or via admin UI
+  - Stored in `user.role` field
 
-#### 📌 Issue #17: Middleware Enforcement
+#### 📌 Issue #17: Middleware Enforcement 🔄
 - **Status:** Not Started
+- **Acceptance Criteria:**
+  - Middleware checks JWT + role
+  - Returns 403 if unauthorized
+
+## Epic 3: Payments (Lightning & Ethereum)
+
+#### 📌 Issue #18: Generate Lightning Invoice 🔄
+- **Status:** Not Started
+- **Acceptance Criteria:**
+  - Call LNBits API
+  - Return invoice string + QR code
 
 ## Development Metrics
 
-- Current Test Coverage: 84.26%
+- Current Test Coverage: 84.75%
 - Required Test Coverage: 80%
 - Test Status: ✅ Meeting requirements
