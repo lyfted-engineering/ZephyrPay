@@ -80,3 +80,33 @@ class LoginRequest(BaseModel):
     """Schema for login request"""
     email: EmailStr
     password: str
+
+
+class PasswordResetRequest(BaseModel):
+    """Schema for password reset request"""
+    email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    """Schema for password reset with token"""
+    token: str
+    new_password: str = Field(..., min_length=8)
+    
+    @field_validator('new_password')
+    def validate_password_strength(cls, v):
+        """Validate password strength"""
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not any(char.isdigit() for char in v):
+            raise ValueError("Password must contain at least one digit")
+        if not any(char.isupper() for char in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(char in "!@#$%^&*()-_=+[]{}|;:,.<>?/" for char in v):
+            raise ValueError("Password must contain at least one special character")
+        return v
+
+
+class PasswordResetResponse(BaseModel):
+    """Schema for password reset response"""
+    message: str
+    reset_token: Optional[str] = None
