@@ -1,0 +1,16 @@
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]
+python_paths = ["backend"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/__init__.py", "*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass"
+]

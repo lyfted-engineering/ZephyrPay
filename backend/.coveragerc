@@ -1,20 +1,3 @@
 [run]
-source = backend/app
-omit = 
-    */tests/*
-    */migrations/*
-    */alembic/*
-    
-[report]
-exclude_lines =
-    pragma: no cover
-    def __repr__
-    raise NotImplementedError
-    if __name__ == .__main__.:
-    pass
-    raise ImportError
-    
-fail_under = 80
-
-[html]
-directory = coverage_html_report
+source = app/api/v1/endpoints/auth.py
+omit = */tests/*

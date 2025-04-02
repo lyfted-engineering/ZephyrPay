@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     # Debug mode
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
     
+    # Testing mode - allows for extra validation
+    TESTING: bool = os.getenv("TESTING", "False").lower() == "true"
+    
+    # Optional GitHub token for CI/CD operations
+    GITHUB_TOKEN: Optional[str] = None
+    
     # Crypto integration settings
     LNBITS_URL: str = os.getenv("LNBITS_URL", "https://legend.lnbits.com")
     LNBITS_API_KEY: str = os.getenv("LNBITS_API_KEY", "")
@@ -59,7 +65,8 @@ class Settings(BaseSettings):
     
     model_config = {
         "case_sensitive": True,
-        "env_file": ".env"
+        "env_file": ".env",
+        "extra": "ignore"  # Allow extra fields in the settings, important for testing
     }
 
 

@@ -1,35 +1,24 @@
-name: "Security Coverage CI"
+name: Auth Endpoints Coverage
 
 on:
   push:
-    branches:
-      - main
-      - develop
-      - feature/*
-      - fix/*
     paths:
       - 'backend/app/api/v1/endpoints/auth.py'
       - 'backend/app/tests/api/v1/test_auth_*.py'
       - 'tools/auth_coverage_enforcer.py'
-      - '.github/workflows/test-coverage.yml'
   pull_request:
-    branches:
-      - main
-      - develop
     paths:
       - 'backend/app/api/v1/endpoints/auth.py'
       - 'backend/app/tests/api/v1/test_auth_*.py'
       - 'tools/auth_coverage_enforcer.py'
-      - '.github/workflows/test-coverage.yml'
   workflow_dispatch:
 
 jobs:
-  test-security-coverage:
+  verify-auth-coverage:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
@@ -44,49 +33,25 @@ jobs:
           pip install pytest pytest-cov pytest-asyncio httpx coverage pyyaml pydantic pydantic-settings
           pip install -r backend/requirements.txt
           
-      - name: Setup test environment
+      - name: Run auth coverage enforcer
+        env:
+          DATABASE_URL: "sqlite:///./test.db"
+          ACCESS_TOKEN_EXPIRE_MINUTES: "11520"
+          SECRET_KEY: "testingsecretkey"
+          TESTING: "True"
+          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/backend"
         run: |
-          mkdir -p backend/app/tests/data
-          touch backend/app/tests/data/test.db
-          # Debug: List test files to verify they exist
-          find backend -name "test_auth*.py" | sort
+          # Fix Python path to handle module imports properly
+          export PYTHONPATH=$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/backend
           
-      - name: Find test files
-        id: find_tests
-        run: |
-          # Look for auth test files in the standard test locations
-          TEST_FILES=$(find backend -name "test_auth_complete_coverage.py" | tr '\n' ' ')
-          echo "Found coverage test files: $TEST_FILES"
-          echo "test_files=$TEST_FILES" >> $GITHUB_OUTPUT
-          
-          # If no comprehensive test file found, report error but don't fail yet
-          if [ -z "$TEST_FILES" ]; then
-            echo "Warning: No comprehensive auth test file found in the repository!"
-            echo "test_files_found=false" >> $GITHUB_OUTPUT
-          else
-            echo "test_files_found=true" >> $GITHUB_OUTPUT
-          fi
-          
-      - name: Create comprehensive auth test
-        if: steps.find_tests.outputs.test_files_found == 'false'
-        run: |
-          echo "Creating comprehensive auth test file to ensure 95% coverage..."
-          python .github/scripts/create_auth_coverage_test.py backend/app/tests/api/v1
-          
-      - name: Verify module imports correctly
-        run: |
-          # Create a script to test imports with enhanced debugging
+          # Create a simple test script to verify imports
           cat > _test_imports.py << 'EOF'
           import sys
           import os
           
-          # Configure Python path
-          sys.path.insert(0, '.')
-          sys.path.insert(0, './backend')
-          
-          print(f"Python version: {sys.version}")
-          print(f"Current working directory: {os.getcwd()}")
-          print(f"Python path: {sys.path}")
+          # Print Python path
+          print(f"PYTHONPATH: {os.environ.get('PYTHONPATH')}")
+          print(f"Current directory: {os.getcwd()}")
           
           # Try all possible import approaches
           import_approaches = [
@@ -100,51 +65,32 @@ jobs:
               print(f"\nTrying: {approach}")
               try:
                   exec(approach)
-                  print(f" Success with: {approach}")
-                  print(f"Auth module location: {auth.__file__}")
-                  print(f"Auth router paths: {[route.path for route in auth.router.routes]}")
+                  print(f"✅ Successfully imported auth module: {auth.__file__}")
                   success = True
                   break
               except ImportError as e:
-                  print(f" Failed: {str(e)}")
+                  print(f"❌ Failed import: {str(e)}")
               except Exception as e:
-                  print(f" Unexpected error: {str(e)}")
-          
+                  print(f"❌ Unexpected error: {str(e)}")
+                  
           if not success:
-              print(" All import approaches failed")
+              print("❌ All import approaches failed")
               sys.exit(1)
           EOF
           
-          # Set Python path to include both root and backend directory
-          export PYTHONPATH=$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/backend
-          
-          # Run the test script
+          # Test imports
           python _test_imports.py
           
-      - name: Run auth coverage with import_fixer
-        env:
-          DATABASE_URL: "sqlite:///./test.db"
-          ACCESS_TOKEN_EXPIRE_MINUTES: "11520"
-          SECRET_KEY: "testingsecretkey"
-          TESTING: "True"
-          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/backend"
-        run: |
-          # Create import fixer to ensure proper module loading
+          # Modify the auth_coverage_enforcer.py to handle imports properly
           cat > tools/import_fixer.py << 'EOF'
           import sys
           import os
-          import importlib.util
-          from pathlib import Path
           
-          # Get root directory and backend directory
-          ROOT_DIR = Path(__file__).resolve().parent.parent
-          BACKEND_DIR = ROOT_DIR / "backend"
+          # Add paths to ensure imports work properly
+          sys.path.insert(0, '.')
+          sys.path.insert(0, './backend')
           
-          # Add both to system path
-          sys.path.insert(0, str(ROOT_DIR))
-          sys.path.insert(0, str(BACKEND_DIR))
-          
-          # Set up environment variables
+          # Set up environment for testing
           os.environ["TESTING"] = "True"
           os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
           os.environ.setdefault("SECRET_KEY", "testingsecretkey")
@@ -157,22 +103,21 @@ jobs:
           # Import and run the coverage enforcer
           try:
               from tools.auth_coverage_enforcer import main
-              print(" Successfully imported auth_coverage_enforcer")
+              print("✅ Successfully imported auth_coverage_enforcer")
               sys.exit(main())
           except ImportError as e:
-              print(f" Import error: {str(e)}")
-              # Try alternate import approach with importlib
+              print(f"❌ Import error: {str(e)}")
+              # Try alternate import approach
               try:
-                  spec = importlib.util.spec_from_file_location(
-                      "auth_coverage_enforcer", 
-                      os.path.join(ROOT_DIR, "tools", "auth_coverage_enforcer.py")
-                  )
+                  import importlib.util
+                  spec = importlib.util.spec_from_file_location("auth_coverage_enforcer", 
+                                                               "tools/auth_coverage_enforcer.py")
                   module = importlib.util.module_from_spec(spec)
                   spec.loader.exec_module(module)
-                  print(" Successfully imported with importlib")
+                  print("✅ Successfully imported with importlib")
                   sys.exit(module.main())
               except Exception as e:
-                  print(f" Final import attempt failed: {str(e)}")
+                  print(f"❌ Final import attempt failed: {str(e)}")
                   import traceback
                   traceback.print_exc()
                   sys.exit(1)
@@ -180,12 +125,12 @@ jobs:
           
           # Run with modified import handling
           python tools/import_fixer.py
-            
-      - name: Verify security coverage requirements
+          
+      - name: Verify coverage meets requirements
         if: always()
         run: |
           if [ -f "auth_coverage.xml" ]; then
-            echo "Verifying ZephyrPay security coverage standards (95% for auth endpoints)..."
+            echo "Checking if auth coverage meets 95% requirement (ZephyrPay Standard V1.1)..."
             python - << 'EOF'
           import xml.etree.ElementTree as ET
           import sys
@@ -209,13 +154,13 @@ jobs:
               if auth_coverage is not None:
                   # Check if coverage meets the required threshold
                   if auth_coverage >= 95.0:
-                      print(" Coverage meets ZephyrPay security standards (95%+)")
+                      print("✅ Coverage meets ZephyrPay security standards (95%+)")
                       sys.exit(0)
                   else:
-                      print(f" Coverage below required 95% threshold: {auth_coverage:.2f}%")
+                      print(f"❌ Coverage below required 95% threshold: {auth_coverage:.2f}%")
                       sys.exit(1)
               else:
-                  print(" Could not find auth module in coverage report")
+                  print("❌ Could not find auth module in coverage report")
                   sys.exit(1)
           except Exception as e:
               print(f"Error parsing coverage report: {str(e)}")
@@ -224,7 +169,7 @@ jobs:
               sys.exit(1)
           EOF
           else
-            echo "Error: No coverage report generated"
+            echo "❌ No coverage report found!"
             exit 1
           fi
           
@@ -232,9 +177,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: security-coverage-reports
+          name: auth-coverage-reports
           path: |
             auth_coverage.xml
             auth_coverage_html/
             coverage.xml
-          if-no-files-found: ignore
+          if-no-files-found: warn
