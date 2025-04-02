@@ -1,4 +1,17 @@
+#!/usr/bin/env python3
 """
+Create a comprehensive auth test file for CI pipeline
+
+This script creates a BDD-style test file for auth endpoints
+to ensure proper coverage measurement meeting ZephyrPay's
+Coding Standards V1.1 requirement of 95% coverage for
+security-critical components.
+"""
+
+import os
+import sys
+
+TEST_CONTENT = '''"""
 BDD-style tests for auth endpoints coverage
 
 Following ZephyrPay Coding Standards V1.1:
@@ -380,3 +393,20 @@ class TestAuthEndpointsFullCoverage:
             if hasattr(route, 'summary') and route.summary:
                 assert isinstance(route.summary, str)
                 assert len(route.summary) > 0
+'''
+
+def main():
+    # Create test directory
+    test_dir = "backend/app/tests/api/v1" if len(sys.argv) < 2 else sys.argv[1]
+    os.makedirs(test_dir, exist_ok=True)
+    
+    # Write test file
+    test_file = os.path.join(test_dir, "test_auth_complete_coverage.py")
+    with open(test_file, "w") as f:
+        f.write(TEST_CONTENT)
+    
+    print(f"Created comprehensive auth test file with direct endpoint testing: {test_file}")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
