@@ -1,4 +1,4 @@
-name: Test Coverage CI
+name: Security Coverage CI
 
 on:
   push:
@@ -8,11 +8,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  test-security-coverage:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v3
+      - name: Check out repository
+        uses: actions/checkout@v3
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -22,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-asyncio httpx
+          pip install pytest pytest-cov pytest-asyncio httpx coverage
           pip install -r backend/requirements.txt
           
       - name: Setup test environment
@@ -30,43 +31,37 @@ jobs:
           mkdir -p backend/app/tests/data
           touch backend/app/tests/data/test.db
           
-      - name: Run tests
+      - name: Run auth endpoint tests with coverage
         env:
           DATABASE_URL: "sqlite:///./test.db"
           ACCESS_TOKEN_EXPIRE_MINUTES: "11520"
           SECRET_KEY: "testingsecretkey"
           TESTING: "True"
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           cd backend
-          python -m pytest -v --cov=app --cov-report=xml --cov-report=term-missing || true
-        
-      - name: Check file structure
-        if: always()
-        run: |
-          echo "=== Repository Structure ==="
-          find backend -type f -name "*.py" | grep -v "__pycache__" | sort
+          # Direct method without import issues
+          python -c "from app.api.v1.endpoints import auth; print(f'Auth module found at {auth.__file__}')"
           
-          echo "=== Test Files ==="
-          find backend -name "test_*.py" | sort
+          # Run tests with direct pytest call
+          python -m pytest app/tests/api/v1/test_auth*.py -v --cov=app.api.v1.endpoints.auth --cov-report=xml --cov-report=term
           
-          echo "=== Auth Components ==="
-          find backend -path "**/endpoints/auth.py" -o -path "**/security.py" | xargs ls -la || true
-
-      - name: Check coverage report
+      - name: Verify security coverage requirements
         if: always()
         run: |
           cd backend
           if [ -f coverage.xml ]; then
-            echo "✅ Coverage report generated"
-            python ../.github/scripts/check_coverage.py
+            echo "Verifying ZephyrPay security coverage standards (95% for auth endpoints)..."
+            python ../.github/scripts/verify_security_coverage.py coverage.xml
           else
-            echo "❌ No coverage report found"
+            echo "Error: No coverage report generated"
+            exit 1
           fi
           
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: coverage-report
+          name: security-coverage-report
           path: backend/coverage.xml
           if-no-files-found: ignore
