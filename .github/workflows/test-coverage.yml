@@ -86,6 +86,18 @@ jobs:
             --cov-report=xml \
             --cov-report=term \
             --cov-fail-under=95
+            
+      - name: Run full test suite with coverage
+        if: always()
+        env:
+          DATABASE_URL: "sqlite:///./test.db"
+          ACCESS_TOKEN_EXPIRE_MINUTES: "11520"
+          SECRET_KEY: "testingsecretkey"
+          TESTING: "True"
+        run: |
+          cd backend
+          python -m pytest --cov=app --cov-report=xml:full-coverage.xml --cov-report=term-missing
+        continue-on-error: true
           
       - name: Verify security coverage requirements
         if: always()
@@ -100,10 +112,24 @@ jobs:
             exit 1
           fi
           
-      - name: Upload coverage report
+      - name: Verify overall coverage
+        if: always()
+        run: |
+          cd backend
+          if [ -f full-coverage.xml ]; then
+            echo "Verifying overall coverage report..."
+            # Use our dedicated verification script to avoid YAML syntax issues
+            python ../.github/scripts/verify_overall_coverage.py full-coverage.xml
+          else
+            echo "❌ No overall coverage report generated"
+          fi
+          
+      - name: Upload coverage reports
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: security-coverage-report
-          path: backend/coverage.xml
+          name: security-coverage-reports
+          path: |
+            backend/coverage.xml
+            backend/full-coverage.xml
           if-no-files-found: ignore

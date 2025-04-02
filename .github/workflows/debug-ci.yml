@@ -1,0 +1,72 @@
+name: Debug CI Pipeline
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Environment Debug
+      run: |
+        echo "GitHub Context:"
+        echo "$GITHUB_CONTEXT"
+        echo "============================"
+        echo "GitHub Workspace: $GITHUB_WORKSPACE"
+        echo "GitHub Action: $GITHUB_ACTION"
+        echo "============================"
+        python --version
+        pip --version
+        
+    - name: Directory Structure
+      run: |
+        echo "Repository Structure:"
+        ls -la
+        echo "============================"
+        echo "Backend Directory:"
+        ls -la backend/
+        echo "============================"
+        
+    - name: Test Backend Structure
+      run: |
+        if [ -d "backend/app/tests" ]; then
+          echo "✅ Tests directory exists"
+          ls -la backend/app/tests
+          echo "============================"
+          find backend/app/tests -name "*.py" | sort
+        else
+          echo "❌ Tests directory not found"
+        fi
+        
+    - name: Try Installing Dependencies
+      run: |
+        echo "Installing Dependencies:"
+        python -m pip install --upgrade pip
+        if [ -f "backend/requirements.txt" ]; then
+          echo "✅ Requirements file exists"
+          cat backend/requirements.txt
+          echo "============================"
+          pip install -r backend/requirements.txt || echo "❌ Error installing requirements"
+          pip install pytest pytest-cov || echo "❌ Error installing test dependencies"
+        else
+          echo "❌ Requirements file not found"
+        fi
+        
+    - name: Attempt Test Run
+      run: |
+        echo "Attempting to run tests:"
+        cd backend
+        pytest --collect-only || echo "❌ Error collecting tests"
+      env:
+        DATABASE_URL: "sqlite:///./test.db"
+        ACCESS_TOKEN_EXPIRE_MINUTES: "11520"
+        SECRET_KEY: "testingsecretkey"
+        TESTING: "True"
+      continue-on-error: true

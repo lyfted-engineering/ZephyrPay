@@ -21,7 +21,7 @@ class User(Base):
     
     # Crypto wallet addresses
     eth_address = Column(String, nullable=True)
-    ln_pubkey = Column(String, nullable=True)
+    ln_address = Column(String, nullable=True)
     
     # Role-based access control (Admin, Operator, Member)
     role = Column(String, nullable=False, default="MEMBER")

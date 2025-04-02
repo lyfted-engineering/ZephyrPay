@@ -1,6 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator, Field
 import re
+from datetime import datetime
 
 
 class UserBase(BaseModel):
@@ -65,18 +66,67 @@ class UserUpdate(BaseModel):
 
 
 class Token(BaseModel):
-    """Schema for authentication token response"""
+    """Schema for authentication token"""
     access_token: str
     token_type: str
 
 
 class TokenPayload(BaseModel):
     """Schema for token payload (JWT contents)"""
-    user_id: int
+    sub: str
     role: str
+    exp: int
 
 
 class LoginRequest(BaseModel):
     """Schema for login request"""
     email: EmailStr
     password: str
+
+
+class PasswordResetRequest(BaseModel):
+    """Schema for password reset request"""
+    email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    """Schema for password reset with token"""
+    token: str
+    new_password: str = Field(..., min_length=8)
+    
+    @field_validator('new_password')
+    def validate_password_strength(cls, v):
+        """Validate password strength"""
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not any(char.isdigit() for char in v):
+            raise ValueError("Password must contain at least one digit")
+        if not any(char.isupper() for char in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(char in "!@#$%^&*()-_=+[]{}|;:,.<>?/" for char in v):
+            raise ValueError("Password must contain at least one special character")
+        return v
+
+
+class PasswordResetResponse(BaseModel):
+    """Schema for password reset response"""
+    message: str
+    reset_token: Optional[str] = None
+
+
+class UserResponse(BaseModel):
+    """Schema for user response"""
+    id: int
+    email: str
+    username: str
+    eth_address: Optional[str] = None
+    ln_address: Optional[str] = None
+    role: str
+    is_active: bool
+    is_verified: bool
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    
+    model_config = {
+        "from_attributes": True
+    }
