@@ -1,0 +1,66 @@
+name: Auth Coverage CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  auth-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-asyncio httpx coverage
+          pip install -r backend/requirements.txt
+          
+      - name: Test directory setup
+        run: |
+          mkdir -p backend/app/tests/data
+          touch backend/app/tests/data/test.db
+          echo "Test directories created"
+          
+      - name: Run auth endpoint tests with coverage
+        env:
+          DATABASE_URL: "sqlite:///./test.db"
+          ACCESS_TOKEN_EXPIRE_MINUTES: "11520"
+          SECRET_KEY: "testingsecretkey"
+          TESTING: "True"
+          PYTHONPATH: "${{ github.workspace }}"
+        run: |
+          cd backend
+          # Prepare coverage config
+          echo "[run]" > .coveragerc
+          echo "source = app.api.v1.endpoints.auth" >> .coveragerc
+          echo "omit = */tests/*" >> .coveragerc
+          
+          # Run tests with coverage
+          python -m pytest app/tests/api/v1/test_auth_complete_coverage.py -v \
+            --cov=app.api.v1.endpoints.auth \
+            --cov-report=xml \
+            --cov-report=term \
+            --cov-fail-under=95
+            
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: auth-coverage-report
+          path: backend/coverage.xml
+          if-no-files-found: ignore
