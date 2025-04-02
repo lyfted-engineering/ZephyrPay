@@ -5,10 +5,12 @@ on:
     paths:
       - 'backend/app/api/v1/endpoints/auth.py'
       - 'backend/app/tests/api/v1/test_auth_*.py'
+      - 'tools/auth_coverage_enforcer.py'
   pull_request:
     paths:
       - 'backend/app/api/v1/endpoints/auth.py'
       - 'backend/app/tests/api/v1/test_auth_*.py'
+      - 'tools/auth_coverage_enforcer.py'
   workflow_dispatch:
 
 jobs:
@@ -17,6 +19,8 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -35,10 +39,10 @@ jobs:
           ACCESS_TOKEN_EXPIRE_MINUTES: "11520"
           SECRET_KEY: "testingsecretkey"
           TESTING: "True"
-          PYTHONPATH: "${{ github.workspace }}"
+          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/backend"
         run: |
           # Fix Python path to handle module imports properly
-          export PYTHONPATH=$GITHUB_WORKSPACE
+          export PYTHONPATH=$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/backend
           
           # Create a simple test script to verify imports
           cat > _test_imports.py << 'EOF'
@@ -49,23 +53,29 @@ jobs:
           print(f"PYTHONPATH: {os.environ.get('PYTHONPATH')}")
           print(f"Current directory: {os.getcwd()}")
           
-          # Try relative import approach
-          sys.path.insert(0, '.')
+          # Try all possible import approaches
+          import_approaches = [
+              "from backend.app.api.v1.endpoints import auth",
+              "import backend.app.api.v1.endpoints.auth as auth",
+              "from app.api.v1.endpoints import auth"
+          ]
           
-          try:
-              from backend.app.api.v1.endpoints import auth
-              print(f"✅ Successfully imported auth module: {auth.__file__}")
-          except ImportError as e:
-              print(f"❌ Failed to import auth module (backend.app): {str(e)}")
-              
-              # Try alternate import approach
+          success = False
+          for approach in import_approaches:
+              print(f"\nTrying: {approach}")
               try:
-                  sys.path.insert(0, 'backend')
-                  from app.api.v1.endpoints import auth
-                  print(f"✅ Successfully imported auth module (app): {auth.__file__}")
+                  exec(approach)
+                  print(f"✅ Successfully imported auth module: {auth.__file__}")
+                  success = True
+                  break
               except ImportError as e:
-                  print(f"❌ Failed with alternate import: {str(e)}")
-                  sys.exit(1)
+                  print(f"❌ Failed import: {str(e)}")
+              except Exception as e:
+                  print(f"❌ Unexpected error: {str(e)}")
+                  
+          if not success:
+              print("❌ All import approaches failed")
+              sys.exit(1)
           EOF
           
           # Test imports
@@ -76,18 +86,92 @@ jobs:
           import sys
           import os
           
-          # Add current directory to path
+          # Add paths to ensure imports work properly
           sys.path.insert(0, '.')
+          sys.path.insert(0, './backend')
+          
+          # Set up environment for testing
+          os.environ["TESTING"] = "True"
+          os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
+          os.environ.setdefault("SECRET_KEY", "testingsecretkey")
+          os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "11520")
+          
+          # Print debugging information
+          print(f"Python path: {sys.path[:5]}")
+          print(f"Current directory: {os.getcwd()}")
           
           # Import and run the coverage enforcer
-          from tools.auth_coverage_enforcer import main
-          
-          if __name__ == "__main__":
+          try:
+              from tools.auth_coverage_enforcer import main
+              print("✅ Successfully imported auth_coverage_enforcer")
               sys.exit(main())
+          except ImportError as e:
+              print(f"❌ Import error: {str(e)}")
+              # Try alternate import approach
+              try:
+                  import importlib.util
+                  spec = importlib.util.spec_from_file_location("auth_coverage_enforcer", 
+                                                               "tools/auth_coverage_enforcer.py")
+                  module = importlib.util.module_from_spec(spec)
+                  spec.loader.exec_module(module)
+                  print("✅ Successfully imported with importlib")
+                  sys.exit(module.main())
+              except Exception as e:
+                  print(f"❌ Final import attempt failed: {str(e)}")
+                  import traceback
+                  traceback.print_exc()
+                  sys.exit(1)
           EOF
           
           # Run with modified import handling
           python tools/import_fixer.py
+          
+      - name: Verify coverage meets requirements
+        if: always()
+        run: |
+          if [ -f "auth_coverage.xml" ]; then
+            echo "Checking if auth coverage meets 95% requirement (ZephyrPay Standard V1.1)..."
+            python - << 'EOF'
+          import xml.etree.ElementTree as ET
+          import sys
+          
+          try:
+              # Parse the coverage XML file
+              tree = ET.parse('auth_coverage.xml')
+              root = tree.getroot()
+              
+              # Look for the auth module coverage
+              auth_coverage = None
+              for package in root.findall(".//package"):
+                  for cls in package.findall(".//class"):
+                      if "auth.py" in cls.get("name", ""):
+                          line_rate = float(cls.get("line-rate", "0"))
+                          coverage_percent = line_rate * 100
+                          print(f"Auth module coverage: {coverage_percent:.2f}%")
+                          auth_coverage = coverage_percent
+                          break
+              
+              if auth_coverage is not None:
+                  # Check if coverage meets the required threshold
+                  if auth_coverage >= 95.0:
+                      print("✅ Coverage meets ZephyrPay security standards (95%+)")
+                      sys.exit(0)
+                  else:
+                      print(f"❌ Coverage below required 95% threshold: {auth_coverage:.2f}%")
+                      sys.exit(1)
+              else:
+                  print("❌ Could not find auth module in coverage report")
+                  sys.exit(1)
+          except Exception as e:
+              print(f"Error parsing coverage report: {str(e)}")
+              import traceback
+              traceback.print_exc()
+              sys.exit(1)
+          EOF
+          else
+            echo "❌ No coverage report found!"
+            exit 1
+          fi
           
       - name: Upload coverage reports
         if: always()
