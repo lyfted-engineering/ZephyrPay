@@ -24,9 +24,9 @@ from backend.app.api.v1.endpoints import auth
 from backend.app.core.security import get_password_hash, verify_password, create_access_token
 from backend.app.core.config import settings
 from backend.app.models.user import User
-from backend.app.schemas.user import UserCreate, Token, LoginRequest
+from backend.app.schemas.user import UserCreate, Token, LoginRequest, PasswordResetRequest, PasswordReset
 from backend.app.core.errors import AuthError, DuplicateError
-from backend.app.services.auth import register_user, login_user
+from backend.app.services.auth import register_user, login_user, request_password_reset, reset_password
 from backend.app.db.session import get_db
 
 # Directly instrument the auth module
@@ -257,6 +257,12 @@ class TestAuthEndpointsFullCoverage:
         assert hasattr(auth, 'AuthError')
         assert hasattr(auth, 'DuplicateError')
         
+        # Also verify password reset imports
+        assert hasattr(auth, 'PasswordResetRequest')
+        assert hasattr(auth, 'PasswordReset')
+        assert hasattr(auth, 'request_password_reset')
+        assert hasattr(auth, 'reset_password')
+        
         # Check auth router registration
         assert isinstance(auth.router, auth.APIRouter)
         
@@ -294,6 +300,10 @@ class TestAuthEndpointsFullCoverage:
         
         assert auth.user_login.__doc__ is not None
         assert "Login with email and password" in auth.user_login.__doc__
+        
+        # Check password reset endpoint docstrings
+        assert auth.password_reset_request.__doc__ is not None
+        assert auth.reset_password_with_token.__doc__ is not None
         
         # Check route decorators for full coverage
         router_routes = auth.router.routes
@@ -354,20 +364,20 @@ class TestAuthEndpointsFullCoverage:
         # Check router configuration for full coverage
         assert auth.router.tags == ["authentication"]
         
-        # Examine login route for complete coverage
-        login_route = None
-        register_route = None
-        
+        # Examine all routes for complete coverage
+        routes_by_path = {}
         for route in auth.router.routes:
-            if "/login" in route.path:
-                login_route = route
-            elif "/register" in route.path:
-                register_route = route
+            routes_by_path[route.path] = route
         
-        assert login_route is not None
-        assert login_route.status_code == status.HTTP_200_OK
-        assert register_route is not None
-        assert register_route.status_code == status.HTTP_201_CREATED
+        # Check login and register routes
+        assert "/login" in routes_by_path
+        assert "/register" in routes_by_path
+        assert routes_by_path["/login"].status_code == status.HTTP_200_OK
+        assert routes_by_path["/register"].status_code == status.HTTP_201_CREATED
+        
+        # Check password reset routes
+        reset_routes = [r for r in routes_by_path.keys() if "reset" in r.lower() or "password" in r.lower()]
+        assert len(reset_routes) >= 1, "No password reset endpoints found"
         
         # Check route handlers to ensure coverage
         for route in auth.router.routes:
@@ -380,3 +390,164 @@ class TestAuthEndpointsFullCoverage:
             if hasattr(route, 'summary') and route.summary:
                 assert isinstance(route.summary, str)
                 assert len(route.summary) > 0
+                
+    @pytest.mark.asyncio
+    async def test_password_reset_request_endpoint(self):
+        """
+        Scenario: Testing password reset request functionality
+        Given a valid email
+        When I request a password reset
+        Then I should receive confirmation
+        """
+        # Create mocks
+        mock_db = AsyncMock()
+        reset_data = PasswordResetRequest(email="reset@example.com")
+        
+        # Create a mock response for the request_password_reset service
+        async def mock_request_reset(*args, **kwargs):
+            # Return a simple string token, not a dictionary
+            return "mock_reset_token"
+            
+        # Store original function
+        original_reset_request = auth_module.request_password_reset
+        
+        try:
+            # Replace with our mock
+            auth_module.request_password_reset = mock_request_reset
+            
+            # Call the function directly
+            result = await auth.password_reset_request(reset_data, mock_db)
+            
+            # Verify results
+            assert hasattr(result, "message")
+            assert "receive" in result.message.lower()
+            assert hasattr(result, "reset_token")
+            assert result.reset_token == "mock_reset_token"
+                
+        finally:
+            # Restore the original
+            auth_module.request_password_reset = original_reset_request
+    
+    @pytest.mark.asyncio
+    async def test_reset_password_endpoint(self):
+        """
+        Scenario: Testing password reset with token functionality
+        Given a valid reset token and new password
+        When I reset my password
+        Then I should receive confirmation
+        """
+        # Create mocks
+        mock_db = AsyncMock()
+        reset_data = PasswordReset(token="valid_token", new_password="NewStrongP@ssw0rd")
+        
+        # Create a mock response for the reset_password service
+        async def mock_reset_password(*args, **kwargs):
+            return True
+            
+        # Store original function
+        original_reset_password = auth_module.reset_password
+        
+        try:
+            # Replace with our mock
+            auth_module.reset_password = mock_reset_password
+            
+            # Call the function directly
+            result = await auth.reset_password_with_token(reset_data, mock_db)
+            
+            # Verify results - result is a Pydantic model, not a dictionary
+            assert hasattr(result, "message")
+            assert "successfully" in result.message.lower()
+                
+        finally:
+            # Restore the original
+            auth_module.reset_password = original_reset_password
+                
+    def test_password_reset_error_paths(self, client: TestClient):
+        """
+        Scenario: Test error handling in password reset endpoints
+        Given invalid data
+        When calling the password reset endpoints
+        Then appropriate error responses should be returned
+        """
+        # Test validation error for password reset request (missing email)
+        response = client.post("/api/v1/auth/password-reset-request", json={})
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        
+        # Test validation error for reset password (missing token or password)
+        response = client.post("/api/v1/auth/reset-password", json={"token": "only-token-no-password"})
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        
+        response = client.post("/api/v1/auth/reset-password", json={"new_password": "only-password-no-token"})
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    
+    @pytest.mark.asyncio
+    async def test_register_duplicate_exception_direct(self):
+        """
+        Scenario: Testing explicit DuplicateError raising in registration
+        Given a database session that will raise DuplicateError
+        When calling the user_register endpoint directly
+        Then the AuthError should be properly raised with 400 status
+        """
+        # Create mocks
+        mock_db = AsyncMock()
+        user_data = UserCreate(
+            email="duplicate@example.com", 
+            password="StrongP@ssw0rd",
+            username="duplicate_user"
+        )
+        
+        # Create a mock that will raise DuplicateError
+        async def mock_register_raises_duplicate(*args, **kwargs):
+            raise DuplicateError("Email already exists")
+        
+        # Store original
+        original_register = auth_module.register_user
+        
+        try:
+            # Replace with our mock
+            auth_module.register_user = mock_register_raises_duplicate
+            
+            # Try the registration, which should raise AuthError
+            with pytest.raises(AuthError) as auth_exc:
+                await auth.user_register(user_data, mock_db)
+            
+            # Check that the exception was properly converted
+            assert auth_exc.value.status_code == status.HTTP_400_BAD_REQUEST
+            assert "already exists" in str(auth_exc.value)
+        finally:
+            # Restore original
+            auth_module.register_user = original_register
+    
+    @pytest.mark.asyncio
+    async def test_reset_password_auth_error_handling(self):
+        """
+        Scenario: Testing explicit AuthError handling in password reset
+        Given a token verification function that raises AuthError
+        When calling reset_password_with_token
+        Then the AuthError should be properly propagated
+        """
+        # Create mocks
+        mock_db = AsyncMock()
+        reset_data = PasswordReset(token="invalid_token", new_password="NewP@ssw0rd")
+        
+        # Create a mock that raises AuthError
+        async def mock_reset_password_raises_auth_error(*args, **kwargs):
+            raise AuthError(message="Invalid token", status_code=status.HTTP_400_BAD_REQUEST)
+        
+        # Store original
+        original_reset_password = auth_module.reset_password
+        
+        try:
+            # Replace with our mock
+            auth_module.reset_password = mock_reset_password_raises_auth_error
+            
+            # Try the reset, which should properly re-raise AuthError
+            with pytest.raises(AuthError) as auth_exc:
+                await auth.reset_password_with_token(reset_data, mock_db)
+            
+            # Check that the exception was properly propagated
+            assert auth_exc.value.status_code == status.HTTP_400_BAD_REQUEST
+            assert "Invalid token" in str(auth_exc.value)
+        finally:
+            # Restore original
+            auth_module.reset_password = original_reset_password
