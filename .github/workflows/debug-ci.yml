@@ -53,8 +53,8 @@ jobs:
           echo "✅ Requirements file exists"
           cat backend/requirements.txt
           echo "============================"
+          pip install pytest pytest-cov pytest-asyncio httpx pyyaml pydantic pydantic-settings
           pip install -r backend/requirements.txt || echo "❌ Error installing requirements"
-          pip install pytest pytest-cov || echo "❌ Error installing test dependencies"
         else
           echo "❌ Requirements file not found"
         fi
