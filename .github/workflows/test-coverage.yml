@@ -19,7 +19,7 @@ jobs:
     
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -86,7 +86,7 @@ jobs:
           # First, make sure auth module is loaded to be measured
           python -c "import sys; sys.path.insert(0, '.'); from app.api.v1.endpoints import auth; print('Auth module pre-loaded')"
           
-          # Now run the tests with coverage
+          # Now run the tests with coverage - enforce 95% for security-critical auth components per standards
           python -m pytest app/tests/api/v1/test_auth_complete_coverage.py -v \
             --cov=app.api.v1.endpoints.auth \
             --cov-report=xml \
@@ -102,7 +102,8 @@ jobs:
           TESTING: "True"
         run: |
           cd backend
-          python -m pytest --cov=app --cov-report=xml:full-coverage.xml --cov-report=term-missing
+          # Run full test suite with 90% minimum coverage requirement per ZephyrPay standards
+          python -m pytest --cov=app --cov-report=xml:full-coverage.xml --cov-report=term-missing --cov-fail-under=90
         continue-on-error: true
           
       - name: Verify security coverage requirements
@@ -112,7 +113,7 @@ jobs:
           if [ -f coverage.xml ]; then
             echo "Verifying ZephyrPay security coverage standards (95% for auth endpoints)..."
             # Use the existing verification script
-            python ../.github/scripts/verify_security_coverage.py coverage.xml
+            python ../.github/scripts/verify_overall_coverage.py coverage.xml 95
           else
             echo "Error: No coverage report generated"
             exit 1
@@ -123,11 +124,11 @@ jobs:
         run: |
           cd backend
           if [ -f full-coverage.xml ]; then
-            echo "Verifying overall coverage report..."
-            # Use our dedicated verification script to avoid YAML syntax issues
-            python ../.github/scripts/verify_overall_coverage.py full-coverage.xml
+            echo "Verifying overall coverage report (minimum 90% per ZephyrPay standards)..."
+            # Use our dedicated verification script
+            python ../.github/scripts/verify_overall_coverage.py full-coverage.xml 90
           else
-            echo " No overall coverage report generated"
+            echo "No overall coverage report generated"
           fi
           
       - name: Upload coverage reports
