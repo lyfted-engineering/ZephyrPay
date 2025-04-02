@@ -63,9 +63,23 @@ jobs:
           
       - name: Verify module imports correctly
         run: |
+          # Set Python path to include the root directory
+          export PYTHONPATH=$GITHUB_WORKSPACE
           cd backend
-          # Pre-import auth module to ensure it's tracked by coverage
-          python -c "import sys; sys.path.insert(0, '.'); from app.api.v1.endpoints import auth; print(f'Auth module available at {auth.__file__}')"
+          # Create a simple script to test imports
+          cat > _import_test.py << 'EOF'
+          import sys
+          sys.path.insert(0, '..')
+          try:
+              from app.api.v1.endpoints import auth
+              print(f' Auth module imported successfully: {auth.__file__}')
+              print(f'Auth routes: {[route.path for route in auth.router.routes]}')
+          except ImportError as e:
+              print(f' Import error: {str(e)}')
+              sys.exit(1)
+          EOF
+          # Run the test script
+          python _import_test.py
           
       - name: Run auth endpoint tests with coverage
         env:
@@ -79,19 +93,20 @@ jobs:
           
           # Prepare coverage config to ensure module is measured properly
           echo "[run]" > .coveragerc
-          echo "source = app.api.v1.endpoints.auth" >> .coveragerc
+          echo "source = app/api/v1/endpoints/auth.py" >> .coveragerc
           echo "omit = */tests/*" >> .coveragerc
           
           echo "Running auth tests with coverage measurement..."
-          # First, make sure auth module is loaded to be measured
-          python -c "import sys; sys.path.insert(0, '.'); from app.api.v1.endpoints import auth; print('Auth module pre-loaded')"
+          # Set the Python path and run tests
+          export PYTHONPATH=$GITHUB_WORKSPACE
           
           # Now run the tests with coverage - enforce 95% for security-critical auth components per standards
           python -m pytest app/tests/api/v1/test_auth_complete_coverage.py -v \
             --cov=app.api.v1.endpoints.auth \
             --cov-report=xml \
             --cov-report=term \
-            --cov-fail-under=95
+            --cov-fail-under=95 \
+            --import-mode=importlib
             
       - name: Run full test suite with coverage
         if: always()

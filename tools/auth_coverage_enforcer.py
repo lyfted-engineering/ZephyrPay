@@ -27,6 +27,43 @@ sys.path.insert(0, str(BACKEND_DIR))
 # Required coverage percentage for auth endpoints
 REQUIRED_COVERAGE = 95.0
 
+def handle_imports():
+    """Add necessary paths for imports to work in any environment"""
+    # Print current environment for debugging
+    print(f"Current directory: {os.getcwd()}")
+    print(f"Python path: {sys.path}")
+    
+    # Try different import approaches
+    try:
+        # First attempt: Direct backend import
+        import backend.app.api.v1.endpoints.auth
+        print("✅ Successfully imported auth module via 'backend.app' path")
+        return True
+    except ImportError as e:
+        print(f"❌ Direct import failed: {str(e)}")
+        
+        # Second attempt: Try relative path
+        try:
+            sys.path.insert(0, str(BACKEND_DIR))
+            from app.api.v1.endpoints import auth
+            print("✅ Successfully imported auth module via 'app' path")
+            return True
+        except ImportError as e:
+            print(f"❌ Relative import failed: {str(e)}")
+            
+            # Third attempt: Try direct file import
+            try:
+                auth_path = os.path.join(BACKEND_DIR, "app", "api", "v1", "endpoints", "auth.py")
+                if not os.path.exists(auth_path):
+                    print(f"❌ Auth file not found at: {auth_path}")
+                    return False
+                    
+                print(f"✅ Auth file found at: {auth_path}")
+                return True
+            except Exception as e:
+                print(f"❌ File check failed: {str(e)}")
+                return False
+
 def initialize_auth_module():
     """Initialize auth module for coverage tracking"""
     print("Initializing auth module for coverage tracking...")
@@ -51,8 +88,21 @@ def initialize_auth_module():
     
     # Import auth module
     try:
+        # Use importlib to load module from file path
         spec = importlib.util.spec_from_file_location("auth", str(auth_module_path))
         auth_module = importlib.util.module_from_spec(spec)
+        
+        # Add the backend directory to sys.path to resolve imports within the auth module
+        backend_parent = str(BACKEND_DIR.parent)
+        if backend_parent not in sys.path:
+            sys.path.insert(0, backend_parent)
+            
+        # Add the app directory to sys.path
+        app_dir = str(BACKEND_DIR)
+        if app_dir not in sys.path:
+            sys.path.insert(0, app_dir)
+            
+        # Execute the module
         spec.loader.exec_module(auth_module)
         
         # Print routes for verification
@@ -65,6 +115,8 @@ def initialize_auth_module():
         return auth_module
     except Exception as e:
         print(f"Error initializing auth module: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def run_tests_with_coverage():
@@ -88,7 +140,7 @@ def run_tests_with_coverage():
     
     # Create and configure coverage object
     cov = coverage.Coverage(
-        source=['backend.app.api.v1.endpoints.auth'],
+        source=['app.api.v1.endpoints.auth'],
         branch=True,
         data_file='.auth_coverage',
         config_file=False,
@@ -105,10 +157,11 @@ def run_tests_with_coverage():
             print(f"Error: Test file not found at {test_file}")
             return False
         
-        # Run tests
+        # Run tests with importlib mode to handle imports properly
         result = pytest.main([
             str(test_file),
-            "-v"
+            "-v",
+            "--import-mode=importlib"
         ])
         
         # Check if tests passed
@@ -190,6 +243,11 @@ def run_tests_with_coverage():
 
 def main():
     """Main function"""
+    # First check import handling
+    if not handle_imports():
+        print("❌ Import handling setup failed")
+        return 1
+    
     # Run tests with coverage
     if run_tests_with_coverage():
         print("\n✅ Auth coverage check passed")

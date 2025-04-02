@@ -37,8 +37,57 @@ jobs:
           TESTING: "True"
           PYTHONPATH: "${{ github.workspace }}"
         run: |
-          # Run our specialized auth coverage enforcer
-          python -m tools.auth_coverage_enforcer
+          # Fix Python path to handle module imports properly
+          export PYTHONPATH=$GITHUB_WORKSPACE
+          
+          # Create a simple test script to verify imports
+          cat > _test_imports.py << 'EOF'
+          import sys
+          import os
+          
+          # Print Python path
+          print(f"PYTHONPATH: {os.environ.get('PYTHONPATH')}")
+          print(f"Current directory: {os.getcwd()}")
+          
+          # Try relative import approach
+          sys.path.insert(0, '.')
+          
+          try:
+              from backend.app.api.v1.endpoints import auth
+              print(f"✅ Successfully imported auth module: {auth.__file__}")
+          except ImportError as e:
+              print(f"❌ Failed to import auth module (backend.app): {str(e)}")
+              
+              # Try alternate import approach
+              try:
+                  sys.path.insert(0, 'backend')
+                  from app.api.v1.endpoints import auth
+                  print(f"✅ Successfully imported auth module (app): {auth.__file__}")
+              except ImportError as e:
+                  print(f"❌ Failed with alternate import: {str(e)}")
+                  sys.exit(1)
+          EOF
+          
+          # Test imports
+          python _test_imports.py
+          
+          # Modify the auth_coverage_enforcer.py to handle imports properly
+          cat > tools/import_fixer.py << 'EOF'
+          import sys
+          import os
+          
+          # Add current directory to path
+          sys.path.insert(0, '.')
+          
+          # Import and run the coverage enforcer
+          from tools.auth_coverage_enforcer import main
+          
+          if __name__ == "__main__":
+              sys.exit(main())
+          EOF
+          
+          # Run with modified import handling
+          python tools/import_fixer.py
           
       - name: Upload coverage reports
         if: always()
