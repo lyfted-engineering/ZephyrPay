@@ -1,0 +1,106 @@
+name: Test Coverage CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: zephyrpay
+          POSTGRES_PASSWORD: zephyrpay
+          POSTGRES_DB: zephyrpay_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+        pip install pytest-cov
+        
+    - name: Run tests with coverage
+      env:
+        DATABASE_URL: postgresql://zephyrpay:zephyrpay@localhost:5432/zephyrpay_test
+        ACCESS_TOKEN_EXPIRE_MINUTES: 11520
+        SECRET_KEY: "testingsecretkey"
+        TESTING: "True"
+      run: |
+        cd backend
+        pytest --cov=backend.app --cov-report=xml --cov-report=term-missing
+        
+    - name: Verify minimum coverage
+      run: |
+        cd backend
+        python -c "
+import sys
+import xml.etree.ElementTree as ET
+
+# Parse the coverage XML report
+tree = ET.parse('coverage.xml')
+root = tree.getroot()
+
+# Get overall coverage
+overall_coverage = float(root.attrib['line-rate']) * 100
+
+# Check coverage for security-critical packages
+security_critical = ['backend.app.api.v1.endpoints.auth', 'backend.app.core.security', 'backend.app.api.v1.endpoints.roles']
+security_critical_coverage = {}
+
+for package in root.findall('.//package'):
+    pkg_name = package.attrib['name']
+    if pkg_name in security_critical:
+        line_rate = float(package.attrib['line-rate']) * 100
+        security_critical_coverage[pkg_name] = line_rate
+
+# Output coverage stats
+print(f'Overall coverage: {overall_coverage:.2f}%')
+for pkg, coverage in security_critical_coverage.items():
+    print(f'{pkg}: {coverage:.2f}%')
+
+# Check if coverage meets requirements
+failed = False
+if overall_coverage < 90:
+    print(f'❌ Overall coverage {overall_coverage:.2f}% is below the required 90%')
+    failed = True
+else:
+    print(f'✅ Overall coverage {overall_coverage:.2f}% meets the minimum requirement of 90%')
+
+for pkg, coverage in security_critical_coverage.items():
+    if coverage < 95:
+        print(f'❌ Security-critical component {pkg} has {coverage:.2f}% coverage, below the required 95%')
+        failed = True
+    else:
+        print(f'✅ Security-critical component {pkg} has {coverage:.2f}% coverage, meeting the required 95%')
+
+if failed:
+    sys.exit(1)
+else:
+    print('All coverage requirements met!')
+        "
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        fail_ci_if_error: true
