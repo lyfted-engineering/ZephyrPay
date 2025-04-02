@@ -1,10 +1,16 @@
-name: Security Coverage CI
+name: "Security Coverage CI"
 
 on:
   push:
-    branches: [ main, develop, feature/*, fix/* ]
+    branches:
+      - main
+      - develop
+      - feature/*
+      - fix/*
   pull_request:
-    branches: [ main, develop ]
+    branches:
+      - main
+      - develop
   workflow_dispatch:
 
 jobs:
@@ -18,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
           
       - name: Install dependencies
         run: |
@@ -43,7 +49,7 @@ jobs:
           
           # If no comprehensive test file found, report error but don't fail yet
           if [ -z "$TEST_FILES" ]; then
-            echo "⚠️ Warning: No comprehensive auth test file found in the repository!"
+            echo " Warning: No comprehensive auth test file found in the repository!"
             echo "test_files_found=false" >> $GITHUB_OUTPUT
           else
             echo "test_files_found=true" >> $GITHUB_OUTPUT
@@ -67,7 +73,7 @@ jobs:
           ACCESS_TOKEN_EXPIRE_MINUTES: "11520"
           SECRET_KEY: "testingsecretkey"
           TESTING: "True"
-          PYTHONPATH: ${{ github.workspace }}
+          PYTHONPATH: "${{ github.workspace }}"
         run: |
           cd backend
           
@@ -121,7 +127,7 @@ jobs:
             # Use our dedicated verification script to avoid YAML syntax issues
             python ../.github/scripts/verify_overall_coverage.py full-coverage.xml
           else
-            echo "❌ No overall coverage report generated"
+            echo " No overall coverage report generated"
           fi
           
       - name: Upload coverage reports
